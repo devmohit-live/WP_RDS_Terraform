@@ -1,5 +1,10 @@
+# Author : Mohit Singh | @devmohit-live
+
+
+# Defining Provider
 provider "kubernetes" {}
 
+# Creating Service for the Exposing the Deployement
 resource "kubernetes_service" "mysvc" {
   depends_on = [kubernetes_deployment.mydeployment]
   metadata {
@@ -13,6 +18,7 @@ resource "kubernetes_service" "mysvc" {
       app = "wp-frontend"
     }
     port {
+      # Fixed The nodePort
       node_port   = 30402
       port        = 80
       target_port = 80
@@ -22,7 +28,7 @@ resource "kubernetes_service" "mysvc" {
 }
 
 
-
+# Creating the PVC for persistent Storage
 resource "kubernetes_persistent_volume_claim" "pvc" {
   metadata {
     name = "wp-pvc"
@@ -40,7 +46,7 @@ resource "kubernetes_persistent_volume_claim" "pvc" {
   }
 }
 
-
+# Creatin Deployemnt
 resource "kubernetes_deployment" "mydeployment" {
   depends_on = [kubernetes_persistent_volume_claim.pvc, aws_db_instance.mydb]
   metadata {
@@ -49,7 +55,7 @@ resource "kubernetes_deployment" "mydeployment" {
       app = "wp-frontend"
     }
   }
-
+  # Defining no. of replicas
   spec {
     replicas = 2
     selector {
@@ -71,7 +77,10 @@ resource "kubernetes_deployment" "mydeployment" {
           }
         }
         container {
+          # Defining the image 
           image = "wordpress:4.8-apache"
+          # *** Providing the Credentials and attributes ***
+          # So that we dont't have to give it manually
           env {
             name  = "WORDPRESS_DB_HOST"
             value = aws_db_instance.mydb.address
@@ -103,6 +112,7 @@ resource "kubernetes_deployment" "mydeployment" {
   }
 }
 
+# Printing the Wordpress URL on the console
 output "myurl" {
   value = " Connect to the url : 192.168.99.106:${kubernetes_service.mysvc.spec[0].port[0].node_port}"
 }
